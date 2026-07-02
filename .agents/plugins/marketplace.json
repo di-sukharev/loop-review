@@ -1,0 +1,20 @@
+{
+  "name": "loop-review",
+  "interface": {
+    "displayName": "Loop Review"
+  },
+  "plugins": [
+    {
+      "name": "loop-review",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

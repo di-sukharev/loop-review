@@ -1,0 +1,4 @@
+interface:
+  display_name: "Loop Code Review"
+  short_description: "Iterative sub-agent review loop"
+  default_prompt: "Use $loop-code-review to review active git changes until an independent reviewer scores the result at least 9.5/10 or reports no actionable comments."

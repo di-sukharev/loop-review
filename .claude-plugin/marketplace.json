@@ -1,0 +1,31 @@
+{
+  "name": "loop-review",
+  "owner": {
+    "name": "Dima Sukharev"
+  },
+  "description": "Marketplace for the Loop Review coding-agent plugin.",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "loop-review",
+      "displayName": "Loop Review",
+      "source": "./",
+      "description": "Iterative independent review-and-fix loop for task-scoped git changes.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Dima Sukharev"
+      },
+      "homepage": "https://github.com/di-sukharev/loop-review#readme",
+      "repository": "https://github.com/di-sukharev/loop-review",
+      "license": "MIT",
+      "keywords": [
+        "code-review",
+        "agent-skills",
+        "claude-code",
+        "codex",
+        "subagents"
+      ],
+      "category": "productivity"
+    }
+  ]
+}

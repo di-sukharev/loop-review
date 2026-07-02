@@ -1,0 +1,35 @@
+{
+  "name": "loop-review",
+  "version": "0.1.0",
+  "description": "Iterative independent review-and-fix loop for task-scoped git changes.",
+  "author": {
+    "name": "Dima Sukharev",
+    "url": "https://github.com/di-sukharev"
+  },
+  "homepage": "https://github.com/di-sukharev/loop-review#readme",
+  "repository": "https://github.com/di-sukharev/loop-review",
+  "license": "MIT",
+  "keywords": [
+    "code-review",
+    "agent-skills",
+    "codex",
+    "claude-code",
+    "subagents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Loop Review",
+    "shortDescription": "Iterative independent code review loop",
+    "longDescription": "Run a scoped review-and-fix loop over active git changes with fresh independent reviewer agents until validation passes and there are no actionable review findings.",
+    "developerName": "Dima Sukharev",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Review"
+    ],
+    "websiteURL": "https://github.com/di-sukharev/loop-review",
+    "defaultPrompt": [
+      "Use $loop-code-review to review my active git changes."
+    ]
+  }
+}
