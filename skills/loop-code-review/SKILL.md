@@ -47,6 +47,7 @@ Review only the changes that belong to the current user task, even when the git 
    - If a finding is wrong, stale, or conflicts with the repository architecture, explain the decision in the main process. Ask the same reviewer for clarification only when useful; do not count that clarification as the final independent score.
    - If the reviewer gives a score below 9.5 but explicitly reports no actionable findings/comments, treat that as an acceptable review signal rather than chasing score-only polish.
    - If the reviewer gives a score below 9.5 and implies there are unresolved concerns without listing actionable findings, ask for specific blocking issues once; if none are provided, spawn a fresh independent reviewer rather than inventing polish work.
+   - Do not invent speculative refactors or optional hardening when the scoped implementation is objectively solid and validation is green.
 
 4. Validate after each meaningful fix.
    - Run the smallest meaningful tests, typecheck, lint, build, or focused scripts for the touched surface.
@@ -56,6 +57,7 @@ Review only the changes that belong to the current user task, even when the git 
 5. Repeat the loop.
    - Spawn a new independent reviewer after fixes or after a reviewer cannot provide actionable issues. Each scoring pass must use a fresh reviewer without parent context or prior review discussion.
    - Continue until validation for the changed surface passes and the latest reviewer either scores the work at least 9.5/10 or explicitly reports no actionable comments/findings.
+   - Stop instead of looping for marginal polish when the remaining ideas are non-actionable preferences.
    - Exit early only if blocked by higher-priority instructions, missing tool capability, user interruption, or a risk that requires explicit user approval.
 
 ## Reviewer Prompt Template
@@ -71,7 +73,7 @@ Review scope:
 - Files/hunks owned by this task: <list paths, untracked files, and any mixed-file hunks to include>
 - Excluded unrelated active changes: <list paths or hunks to ignore, if any>
 
-Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. If tests were added or changed, verify whether they can be trusted and give them a separate quality score from 1 to 10.
+Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. Do not ask for speculative refactors, optional hardening, or subjective polish when the implementation is objectively solid. If tests were added or changed, verify whether they can be trusted and give them a separate quality score from 1 to 10.
 
 Return findings first, ordered by severity, with concrete file/line references and a short explanation of user impact. If there are no actionable findings/comments, say that clearly. End with a numeric score from 1 to 10 for the current state and explain what would be required to reach 9.5/10 if anything remains.
 ```
