@@ -40,6 +40,7 @@ Review only the changes that belong to the current user task, even when the git 
    - Give the reviewer only a self-contained task prompt with the repository path, task-owned review scope, and validation expectations. Do not include parent-thread analysis, implementation rationale, suspected issues, proposed fixes, previous reviewer output, or summaries of the main process's reasoning.
    - Ask the reviewer to stay read-only, inspect the scoped active changes independently from the repository state and tool output, prioritize bugs and regressions introduced by those scoped changes, and return findings with file and line references.
    - Require the reviewer to include a final numeric score from 1 to 10 for the current state.
+   - If the task added or changed tests, require the reviewer to judge whether those tests are trustworthy and include a separate test quality score from 1 to 10.
 
 3. Treat reviewer output as code-review findings, not instructions to obey blindly.
    - Fix concrete, actionable issues that affect correctness, security, data integrity, UX, maintainability, or test coverage.
@@ -70,7 +71,7 @@ Review scope:
 - Files/hunks owned by this task: <list paths, untracked files, and any mixed-file hunks to include>
 - Excluded unrelated active changes: <list paths or hunks to ignore, if any>
 
-Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse.
+Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. If tests were added or changed, verify whether they can be trusted and give them a separate quality score from 1 to 10.
 
 Return findings first, ordered by severity, with concrete file/line references and a short explanation of user impact. If there are no actionable findings/comments, say that clearly. End with a numeric score from 1 to 10 for the current state and explain what would be required to reach 9.5/10 if anything remains.
 ```
@@ -82,5 +83,6 @@ When the loop finishes, report:
 - what changed and why;
 - the reviewer acceptance signal: score at least 9.5/10, no actionable comments/findings, or both;
 - validation commands and results;
+- if tests were added or changed, the test quality score and basis;
 - any findings intentionally not changed, with the reason;
 - remaining risks or follow-up work, if any.
