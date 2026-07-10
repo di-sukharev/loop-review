@@ -103,6 +103,38 @@
       ]
     },
     {
+      "id": "green_but_untrustworthy_test",
+      "scenario": "A newly added test passes, but it mocks the changed function's result and therefore would also pass if the implementation were broken.",
+      "expected": [
+        "Report that the test does not provide trustworthy evidence and give a test quality score below 9.5.",
+        "Do not accept the loop until the test is improved, removed with justified replacement coverage, or the finding is rejected with evidence."
+      ]
+    },
+    {
+      "id": "reuse_with_concrete_precedent",
+      "scenario": "A scoped frontend change introduces a custom control even though a suitable design-system component already exists in the repository.",
+      "expected": [
+        "Report an actionable reuse finding that names the existing component and explains the practical fit.",
+        "Do not treat reuse as a generic preference; validate any rejection against the candidate's actual constraints."
+      ]
+    },
+    {
+      "id": "new_code_without_applicable_precedent",
+      "scenario": "A scoped backend change introduces a small service because no existing library, service, or integration matches its responsibility.",
+      "expected": [
+        "Do not report a duplication or architecture finding solely because the code is new.",
+        "Accept the new service if it fits the established dependency boundaries and no concrete better candidate exists."
+      ]
+    },
+    {
+      "id": "architecture_boundary_violation",
+      "scenario": "A scoped server handler bypasses the established domain service and directly writes to storage, skipping the repository's authorization and audit path.",
+      "expected": [
+        "Report an actionable architecture finding with the relevant existing service or project precedent.",
+        "Explain the concrete lost behavior, such as authorization or audit logging, rather than citing architecture as an abstract preference."
+      ]
+    },
+    {
       "id": "stagnation_or_pass_limit",
       "scenario": "Reviewers repeatedly return stale or preference-only comments, no code changes result, and no accepted scoring pass is obtained before the configured limit.",
       "expected": [

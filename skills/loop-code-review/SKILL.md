@@ -40,6 +40,16 @@ Review only the changes that belong to the current user task, even when the git 
 - The reviewer may read neighboring code for context, but findings must be limited to regressions introduced by the scoped task changes. Ignore unrelated active changes unless the scoped changes directly depend on them or make them worse.
 - If scoped changes move while a review is running, discard the stale score and review the new state with a fresh reviewer.
 
+## Review Dimensions
+
+Apply these checks when they are relevant to the scoped change. Base findings on repository evidence; do not impose a new architecture or request reuse merely for uniformity.
+
+- **Test evidence:** When tests are added or changed, judge whether they exercise the changed behavior, would fail for a plausible regression, assert an observable contract, and use mocks only at real boundaries without mocking the result under test. When testable behavior changes without tests, decide whether the risk warrants coverage; allow "tests not needed" with a concrete reason. Passing tests demonstrate execution, not test quality.
+- **Reuse and local fit:** Inspect neighboring code and established project utilities before recommending reuse. On the client, look for suitable existing components, hooks, design-system primitives, and patterns. On the server, look for suitable shared libraries, clients, services, and integrations. Raise a finding only when a specific existing candidate is a better fit; name it and explain the practical benefit.
+- **Architecture and conventions:** Derive the existing boundaries and conventions from the scoped code, neighboring code, and project guidance. Check that dependencies, responsibilities, contracts, error handling, and cross-cutting concerns stay in their intended layers. Treat a deviation as a finding only when it conflicts with an identifiable project rule or precedent.
+
+Use the test quality score as supporting evidence, not an acceptance gate by itself: make it actionable only when it identifies misleading, missing, or insufficient coverage. Do not chase score-only test polish.
+
 ## Workflow
 
 1. Inspect the worktree before spawning reviewers:
@@ -58,9 +68,9 @@ Review only the changes that belong to the current user task, even when the git 
    - Select a reviewer that inherits or otherwise matches the orchestrator's model and reasoning settings. Do not raise, lower, or substitute the reviewer's model or effort. Include the inherited settings or platform parity guarantee in the main process record.
    - Start a new reviewer instance with a fresh isolated conversation context for the independent review pass. Do not resume or reuse an earlier reviewer conversation for a scoring pass.
    - Give the reviewer only a self-contained task prompt with the repository path, task-owned review scope, and validation expectations. Do not include parent-thread analysis, implementation rationale, suspected issues, proposed fixes, previous reviewer output, or summaries of the main process's reasoning.
-   - Ask the reviewer to stay read-only, inspect the scoped active changes independently from the repository state and tool output, prioritize bugs and regressions introduced by those scoped changes, and return findings with file and line references.
+   - Ask the reviewer to stay read-only, inspect the scoped active changes independently from the repository state and tool output, apply the review dimensions below, prioritize bugs and regressions introduced by those scoped changes, and return findings with file and line references.
    - Require the reviewer to include a final numeric score from 1 to 10 for the current state using the scoring anchors below.
-   - If the task added or changed tests, require the reviewer to judge whether those tests are trustworthy and include a separate test quality score from 1 to 10.
+   - If the task added or changed tests, require the reviewer to judge whether those tests are trustworthy and include a separate test quality score from 1 to 10 with a short basis. If testable behavior changed without tests, require an assessment of whether that is justified.
 
 4. Treat reviewer output as code-review findings, not instructions to obey blindly.
    - Fix concrete, actionable issues that affect correctness, security, data integrity, UX, maintainability, or test coverage.
@@ -88,7 +98,7 @@ Review only the changes that belong to the current user task, even when the git 
 
 - **10.0:** No known defects or actionable improvements in scope; validation evidence is complete and green.
 - **9.5:** No actionable findings remain; only clearly optional or subjective nits may remain; validation evidence is sufficient and green.
-- **Below 9.5:** At least one meaningful actionable finding remains, or required validation evidence is missing or failing.
+- **Below 9.5:** At least one meaningful actionable finding remains, including untrustworthy or missing high-value test coverage, or required validation evidence is missing or failing.
 
 The score summarizes the review; it never overrides concrete findings or red validation.
 
@@ -110,9 +120,14 @@ Reviewer eligibility:
 - Reviewer capability: <model/version and reasoning effort, when exposed>
 - Parity rationale: <inherited parent settings or platform guarantee that the reviewer matches the parent>
 
-Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. Do not ask for speculative refactors, optional hardening, or subjective polish when the implementation is objectively solid. If tests were added or changed, verify whether they can be trusted and give them a separate quality score from 1 to 10.
+Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. Do not ask for speculative refactors, optional hardening, or subjective polish when the implementation is objectively solid.
 
-Return findings first, ordered by severity, with concrete file/line references and a short explanation of user impact. If there are no actionable findings/comments, say that clearly. Score 10 only when there are no known in-scope defects and validation evidence is complete; score 9.5 when no actionable findings remain and only optional nits may remain; score below 9.5 when an actionable finding remains or validation evidence is missing/failing. End with a numeric score from 1 to 10 and explain what concrete issue prevents a 9.5/10 if anything remains.
+When relevant, also assess:
+- **Test evidence:** Tests should exercise the changed behavior, fail for a plausible regression, assert an observable contract, and avoid mocks that fake the outcome being tested. If tests were added or changed, give a separate quality score from 1 to 10 with a short basis. If testable behavior changed without tests, explain whether that is justified.
+- **Reuse and local fit:** Look for existing project components, hooks, utilities, libraries, clients, services, or integrations before suggesting a new abstraction. Report a reuse finding only when you can name a specific candidate and explain why it fits better.
+- **Architecture and conventions:** Check the change against identifiable project boundaries, dependency direction, and local conventions. Do not impose a new architecture or report a preference as a violation.
+
+Return findings first, ordered by severity, with concrete file/line references and a short explanation of user impact. If there are no actionable findings/comments, say that clearly. Treat a low test quality score as a finding only when you identify misleading, missing, or insufficient coverage; do not request score-only test polish. Score 10 only when there are no known in-scope defects and validation evidence is complete; score 9.5 when no actionable findings remain and only optional nits may remain; score below 9.5 when an actionable finding remains or validation evidence is missing/failing. End with a numeric score from 1 to 10 and explain what concrete issue prevents a 9.5/10 if anything remains.
 ```
 
 ## Final Response
