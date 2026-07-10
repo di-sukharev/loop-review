@@ -2,7 +2,7 @@
 
 Loop Review packages the `loop-code-review` Agent Skill: an iterative review-and-fix workflow for active git changes.
 
-The skill asks a fresh independent reviewer agent to inspect only the current task's scoped changes, fixes actionable findings, validates the touched surface, and repeats until validation is green and the latest reviewer either scores the result at least 9.5/10 or reports no actionable findings.
+The skill asks a fresh independent reviewer agent that is at least as capable as the orchestrating model to inspect only the current task's scoped changes. It fixes actionable findings, validates the touched surface, and repeats until validation is green and the latest eligible reviewer has no unresolved actionable findings and either scores the result at least 9.5/10 or explicitly reports no actionable findings.
 
 ## Install with Codex
 
@@ -58,9 +58,16 @@ ln -s "$(pwd)/skills/loop-code-review" ~/.claude/skills/loop-code-review
 
 - Scope review to the current task's files or hunks.
 - Keep reviewers independent from the parent conversation.
+- Require reviewer capability to match or exceed the orchestrating model; a known weaker reviewer cannot satisfy the acceptance bar.
 - Treat reviewer output as code-review findings, not as commands to obey blindly.
+- Never let a high score override an unresolved actionable finding or failing validation.
 - Validate after meaningful fixes.
 - Repeat with a fresh reviewer until the acceptance signal is strong.
+- Detect ambiguous task ownership, stale reviews, pass-limit exhaustion, and review stagnation without silently declaring success.
+
+## Evaluation Cases
+
+[`evals/cases.json`](evals/cases.json) captures the expected behavior for clean reviews, high scores with unresolved findings, mixed worktrees, model-capability mismatches, red validation, and loop stagnation.
 
 ## Repository Layout
 
@@ -69,6 +76,7 @@ ln -s "$(pwd)/skills/loop-code-review" ~/.claude/skills/loop-code-review
 .agents/plugins/marketplace.json Codex repo marketplace
 .claude-plugin/plugin.json      Claude Code plugin manifest
 .claude-plugin/marketplace.json Claude Code marketplace
+evals/cases.json                Behavioral evaluation scenarios
 skills/loop-code-review/        Agent Skill source
 ```
 

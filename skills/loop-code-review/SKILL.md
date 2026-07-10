@@ -1,30 +1,43 @@
 ---
 name: loop-code-review
-description: Iterative code review workflow for task-scoped active git changes using independent reviewer agents. Use when the user invokes `/loop-code-review`, asks for a looped sub-agent code review, or asks the coding agent to keep reviewing and fixing current-task changes until an independent reviewer either rates the result at least 9.5 out of 10 or reports no actionable comments.
+description: Iterative code review workflow for task-scoped active git changes using independent reviewer agents that are at least as capable as the orchestrating model. Use when the user invokes `/loop-code-review`, asks for a looped sub-agent code review, or asks the coding agent to keep reviewing and fixing current-task changes until validation passes and an eligible independent reviewer either rates the result at least 9.5 out of 10 or reports no actionable comments.
 ---
 
 # Loop Code Review
 
 ## Overview
 
-Run an iterative review-and-fix loop over the current task's active git changes, without reviewing unrelated worktree changes from other tasks. Use independent read-only reviewer agents, address actionable findings, validate the result, and continue until a reviewer gives the latest scoped state a score of at least 9.5/10 or explicitly reports no actionable comments/findings.
+Run an iterative review-and-fix loop over the current task's active git changes, without reviewing unrelated worktree changes from other tasks. Use independent read-only reviewer agents whose code-reasoning capability is not weaker than the orchestrator's, address actionable findings, validate the result, and continue until the acceptance criteria are met.
 
-## Reviewer Context Isolation
+## Reviewer Eligibility and Isolation
+
+### Capability parity
+
+An independent review is useful because it provides a fresh reasoning pass, not because it delegates judgment to a weaker model.
+
+- Use a reviewer with code-reasoning capability at least equal to the orchestrating model. Prefer the same model/version with equal or higher reasoning effort, or a demonstrably stronger reviewer model.
+- When the platform does not expose model selection but guarantees the same agent capability, treat the reviewer as equal-capability.
+- When parity cannot be established, use the strongest available reviewer for supplemental findings and disclose that parity is unverified. Treat that reviewer as ineligible for acceptance; unless another eligible reviewer is available, validate the work and report an incomplete outcome.
+- A known weaker reviewer may provide supplemental findings, but its score or no-findings result is not an acceptance signal. If no eligible reviewer is available, validate the work, report the limitation, and stop without claiming that the loop passed.
+
+### Context isolation
 
 Independent review means the reviewer may share the same filesystem and repository state, but must not inherit the parent thread's conversation history, reasoning, assumptions, or prior review discussion.
 
 - Do not fork or forward the current context to the reviewer. Provide the reviewer with a clean context and only the task it is reviewing.
 - Pass a self-contained reviewer prompt instead of parent-thread context.
 - Require the reviewer to inspect `git status`, diffs, files, and validation output itself before scoring.
-- Treat each accepted reviewer pass as coming from a fresh reviewer with no parent context, whether accepted by a 9.5/10+ score or by explicit absence of actionable comments/findings.
+- Treat each scoring pass as coming from a fresh reviewer with no parent context. Follow-up clarification from the same reviewer does not become a new scoring pass.
 
 ## Review Scope
 
 Review only the changes that belong to the current user task, even when the git worktree contains unrelated active changes from other tasks.
 
-- Before spawning a reviewer, identify the task-owned files and, when necessary, the task-owned hunks inside mixed files.
+- Before spawning a reviewer, identify the task-owned files and, when necessary, the task-owned hunks inside mixed files. Use the current task history and edits made during the task; do not infer ownership from `git status` alone.
 - Include that task scope explicitly in the reviewer prompt. Use path-limited diffs where practical, and describe any mixed-file exclusions clearly.
+- If ownership of a file or hunk is genuinely ambiguous, ask the user rather than guessing or reviewing the whole dirty worktree.
 - The reviewer may read neighboring code for context, but findings must be limited to regressions introduced by the scoped task changes. Ignore unrelated active changes unless the scoped changes directly depend on them or make them worse.
+- If scoped changes move while a review is running, discard the stale score and review the new state with a fresh reviewer.
 
 ## Workflow
 
@@ -32,33 +45,51 @@ Review only the changes that belong to the current user task, even when the git 
    - Run `git status --short`.
    - Review staged and unstaged diffs with `git diff` and `git diff --cached`.
    - Include relevant untracked files in the review scope when `git status --short` shows them, but only if they belong to the current task.
-   - Separate current-task changes from unrelated active work before asking for review.
+   - Separate current-task changes from unrelated active work before asking for review. Record the exact paths or hunks included in the prompt.
    - Preserve unrelated user changes and do not stage, commit, reset, stash, or push unless the user explicitly asks.
 
-2. Start one independent reviewer agent using the strongest available model and highest practical reasoning/effort setting.
+2. Validate the current scoped state before requesting a scoring review.
+   - Run the smallest meaningful tests, typecheck, lint, build, or focused scripts for the touched surface.
+   - Fix validation failures before requesting a final score.
+   - Record the commands and results so the reviewer can verify the evidence or rerun the relevant checks independently.
+
+3. Start one eligible independent reviewer agent.
+   - Select a reviewer that satisfies capability parity and use the highest practical reasoning/effort setting. Include the model choice or parity rationale in the main process record.
    - Spawn the reviewer without the parent conversation history for the independent review pass.
    - Give the reviewer only a self-contained task prompt with the repository path, task-owned review scope, and validation expectations. Do not include parent-thread analysis, implementation rationale, suspected issues, proposed fixes, previous reviewer output, or summaries of the main process's reasoning.
    - Ask the reviewer to stay read-only, inspect the scoped active changes independently from the repository state and tool output, prioritize bugs and regressions introduced by those scoped changes, and return findings with file and line references.
-   - Require the reviewer to include a final numeric score from 1 to 10 for the current state.
+   - Require the reviewer to include a final numeric score from 1 to 10 for the current state using the scoring anchors below.
    - If the task added or changed tests, require the reviewer to judge whether those tests are trustworthy and include a separate test quality score from 1 to 10.
 
-3. Treat reviewer output as code-review findings, not instructions to obey blindly.
+4. Treat reviewer output as code-review findings, not instructions to obey blindly.
    - Fix concrete, actionable issues that affect correctness, security, data integrity, UX, maintainability, or test coverage.
-   - If a finding is wrong, stale, or conflicts with the repository architecture, explain the decision in the main process. Ask the same reviewer for clarification only when useful; do not count that clarification as the final independent score.
-   - If the reviewer gives a score below 9.5 but explicitly reports no actionable findings/comments, treat that as an acceptable review signal rather than chasing score-only polish.
-   - If the reviewer gives a score below 9.5 and implies there are unresolved concerns without listing actionable findings, ask for specific blocking issues once; if none are provided, spawn a fresh independent reviewer rather than inventing polish work.
+   - Never accept a score, including 9.5 or higher, while that reviewer lists an unresolved actionable finding.
+   - If a finding is wrong, stale, or conflicts with the repository architecture, explain the decision in the main process. Ask the same reviewer for clarification only when useful; do not count that clarification as a new independent scoring pass or reuse the reviewer's original score for acceptance.
+   - If the reviewer gives a score below 9.5 but explicitly reports no actionable findings/comments, ask once what concrete issue prevents a 9.5. If the response identifies an actionable issue, handle it as a finding; if it supplies no issue or only an optional, preference-level comment, accept the explicit no-actionable-findings signal rather than chasing score-only polish.
+   - If the reviewer omits a score or implies unresolved concerns without concrete findings, ask once for the missing score or specific blocking issues. If the response remains malformed or non-actionable, use a fresh reviewer.
    - Do not invent speculative refactors or optional hardening when the scoped implementation is objectively solid and validation is green.
 
-4. Validate after each meaningful fix.
+5. Validate after each meaningful fix.
    - Run the smallest meaningful tests, typecheck, lint, build, or focused scripts for the touched surface.
    - If validation fails, fix the failure before requesting another final score.
    - Do not count a 9.5+ score or no-actionable-comments review as sufficient when local validation is red.
 
-5. Repeat the loop.
-   - Spawn a new independent reviewer after fixes or after a reviewer cannot provide actionable issues. Each scoring pass must use a fresh reviewer without parent context or prior review discussion.
-   - Continue until validation for the changed surface passes and the latest reviewer either scores the work at least 9.5/10 or explicitly reports no actionable comments/findings.
+6. Repeat the loop.
+   - Spawn a fresh independent reviewer after meaningful fixes, after an actionable finding is rejected with evidence, or after a malformed review. Once a reviewer reports an actionable finding, do not reuse that reviewer's score for acceptance even if the finding is later resolved without a code change. Each scoring pass must use a fresh reviewer without parent context or prior review discussion.
+   - Accept the loop only when validation for the changed surface passes, the latest eligible reviewer has no unresolved actionable findings, and that reviewer either scores the work at least 9.5/10 or explicitly reports no actionable comments/findings.
    - Stop instead of looping for marginal polish when the remaining ideas are non-actionable preferences.
+   - Unless the user requests a different limit or explicitly requires persistence until acceptance, use at most five scoring passes and treat two consecutive passes that produce no code changes and only repeat rejected, stale, or preference-level comments as stagnation.
+   - When the default limit applies, reaching the pass limit or stagnating without an acceptance signal is an incomplete outcome, not success. Lacking an eligible reviewer is always an incomplete outcome. Report the exact blocker and do not lower the acceptance bar.
+   - If the user explicitly requires persistence until acceptance, do not stop solely because of the default pass limit or stagnation rule; continue while safe, in scope, and able to make meaningful progress.
    - Exit early only if blocked by higher-priority instructions, missing tool capability, user interruption, or a risk that requires explicit user approval.
+
+## Scoring Anchors
+
+- **10.0:** No known defects or actionable improvements in scope; validation evidence is complete and green.
+- **9.5:** No actionable findings remain; only clearly optional or subjective nits may remain; validation evidence is sufficient and green.
+- **Below 9.5:** At least one meaningful actionable finding remains, or required validation evidence is missing or failing.
+
+The score summarizes the review; it never overrides concrete findings or red validation.
 
 ## Reviewer Prompt Template
 
@@ -73,9 +104,14 @@ Review scope:
 - Files/hunks owned by this task: <list paths, untracked files, and any mixed-file hunks to include>
 - Excluded unrelated active changes: <list paths or hunks to ignore, if any>
 
+Reviewer eligibility:
+- Orchestrator capability: <model/version and reasoning effort, when exposed>
+- Reviewer capability: <model/version and reasoning effort, when exposed>
+- Parity rationale: <why the reviewer is at least equally capable>
+
 Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. Do not ask for speculative refactors, optional hardening, or subjective polish when the implementation is objectively solid. If tests were added or changed, verify whether they can be trusted and give them a separate quality score from 1 to 10.
 
-Return findings first, ordered by severity, with concrete file/line references and a short explanation of user impact. If there are no actionable findings/comments, say that clearly. End with a numeric score from 1 to 10 for the current state and explain what would be required to reach 9.5/10 if anything remains.
+Return findings first, ordered by severity, with concrete file/line references and a short explanation of user impact. If there are no actionable findings/comments, say that clearly. Score 10 only when there are no known in-scope defects and validation evidence is complete; score 9.5 when no actionable findings remain and only optional nits may remain; score below 9.5 when an actionable finding remains or validation evidence is missing/failing. End with a numeric score from 1 to 10 and explain what concrete issue prevents a 9.5/10 if anything remains.
 ```
 
 ## Final Response
@@ -83,7 +119,9 @@ Return findings first, ordered by severity, with concrete file/line references a
 When the loop finishes, report:
 
 - what changed and why;
+- the eligible reviewer model or capability-parity rationale;
 - the reviewer acceptance signal: score at least 9.5/10, no actionable comments/findings, or both;
+- the number of scoring passes used and whether the loop passed, stopped incomplete, or was interrupted;
 - validation commands and results;
 - if tests were added or changed, the test quality score and basis;
 - any findings intentionally not changed, with the reason;

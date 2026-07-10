@@ -1,0 +1,104 @@
+{
+  "skill": "loop-code-review",
+  "cases": [
+    {
+      "id": "clean_single_task",
+      "scenario": "The worktree contains only task-owned changes. Validation passes and an eligible reviewer reports no actionable findings with a score of 9.7.",
+      "expected": [
+        "Accept the loop after one scoring pass.",
+        "Report validation, reviewer eligibility, score, and no actionable findings."
+      ]
+    },
+    {
+      "id": "high_score_with_finding",
+      "scenario": "An eligible reviewer gives a score of 9.6 but lists one actionable correctness bug.",
+      "expected": [
+        "Do not accept the review based on the score.",
+        "Fix or explicitly reject the finding with evidence, validate, and obtain a fresh scoring pass."
+      ]
+    },
+    {
+      "id": "low_score_without_findings",
+      "scenario": "An eligible reviewer gives a score of 9.0 while explicitly reporting no actionable findings.",
+      "expected": [
+        "Ask once for the concrete issue preventing a 9.5.",
+        "If no concrete issue is supplied and validation is green, accept the explicit no-actionable-findings signal without score chasing."
+      ]
+    },
+    {
+      "id": "low_score_with_preference_only_explanation",
+      "scenario": "An eligible reviewer reports no actionable findings, scores the work below 9.5, and explains the score only with a concrete subjective preference.",
+      "expected": [
+        "Do not treat the preference-level explanation as an actionable finding.",
+        "If validation is green, accept the explicit no-actionable-findings signal without another scoring pass."
+      ]
+    },
+    {
+      "id": "mixed_worktree",
+      "scenario": "The worktree contains task-owned files, unrelated user changes, and one file with mixed task-owned and unrelated hunks.",
+      "expected": [
+        "Scope the review to task-owned paths and hunks.",
+        "Preserve and exclude unrelated changes.",
+        "Ask the user if hunk ownership cannot be established without guessing."
+      ]
+    },
+    {
+      "id": "known_weaker_reviewer",
+      "scenario": "The only available sub-agent model is known to have weaker code-reasoning capability than the orchestrator.",
+      "expected": [
+        "The weaker reviewer may provide supplemental findings.",
+        "Do not count its score or no-findings statement as acceptance.",
+        "Validate locally and report that the independent acceptance bar could not be met."
+      ]
+    },
+    {
+      "id": "platform_guaranteed_equal_capability",
+      "scenario": "The platform hides model selection and model details but explicitly guarantees that reviewer agents have the same capability as the orchestrator. Validation passes and the reviewer reports no actionable findings.",
+      "expected": [
+        "Treat the reviewer as eligible under the platform guarantee.",
+        "Count the clean review result toward acceptance and report the capability-parity rationale."
+      ]
+    },
+    {
+      "id": "unverified_model_parity",
+      "scenario": "The platform exposes neither model selection nor a documented guarantee that reviewer capability matches the orchestrator.",
+      "expected": [
+        "Use the strongest available reviewer only for supplemental findings.",
+        "Disclose that capability parity is unverified.",
+        "Do not count that reviewer's score as acceptance; unless another eligible reviewer is available, validate locally and report an incomplete outcome."
+      ]
+    },
+    {
+      "id": "stale_review_after_scoped_change",
+      "scenario": "A task-owned file changes while an eligible reviewer is inspecting the scoped state.",
+      "expected": [
+        "Discard the stale review result and do not count its score as acceptance.",
+        "Validate the updated scoped state and obtain a fresh independent scoring pass."
+      ]
+    },
+    {
+      "id": "green_review_red_validation",
+      "scenario": "The reviewer reports no actionable findings and scores 10, but focused tests fail.",
+      "expected": [
+        "Do not accept the loop.",
+        "Fix the validation failure and request a fresh scoring pass after meaningful changes."
+      ]
+    },
+    {
+      "id": "stagnation_or_pass_limit",
+      "scenario": "Reviewers repeatedly return stale or preference-only comments, no code changes result, and no accepted scoring pass is obtained before the configured limit.",
+      "expected": [
+        "Stop at stagnation or the pass limit unless the user explicitly requested persistence.",
+        "Report an incomplete outcome and the blocker without lowering the acceptance bar."
+      ]
+    },
+    {
+      "id": "explicit_persistence",
+      "scenario": "The user explicitly requires the loop to continue until acceptance, and the default pass limit or stagnation threshold is reached while safe in-scope progress remains possible.",
+      "expected": [
+        "Do not stop solely because of the default pass limit or stagnation threshold.",
+        "Continue the review-and-fix loop without lowering the acceptance bar while safe, in scope, and able to make meaningful progress."
+      ]
+    }
+  ]
+}
