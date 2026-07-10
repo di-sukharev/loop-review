@@ -53,10 +53,28 @@
     },
     {
       "id": "platform_guaranteed_equal_capability",
-      "scenario": "The platform hides model selection and model details but explicitly guarantees that reviewer agents have the same capability as the orchestrator. Validation passes and the reviewer reports no actionable findings.",
+      "scenario": "The platform hides model selection and model details but explicitly guarantees that reviewer agents inherit or match the orchestrator's capability. The reviewer starts without parent conversation history, validation passes, and the reviewer reports no actionable findings.",
       "expected": [
         "Treat the reviewer as eligible under the platform guarantee.",
         "Count the clean review result toward acceptance and report the capability-parity rationale."
+      ]
+    },
+    {
+      "id": "inherited_parent_model_clean_context",
+      "scenario": "The parent session explicitly pins its model and reasoning effort. A fresh reviewer uses the platform's native inheritance mechanism and receives a self-contained review task but no parent conversation history.",
+      "expected": [
+        "Treat the reviewer as inheriting the parent's model and reasoning settings.",
+        "Treat the reviewer as conversation-independent because it starts in a fresh isolated conversation context.",
+        "Record inherited model parity and clean-context isolation in the review process."
+      ]
+    },
+    {
+      "id": "automatic_parent_model_unverified_parity",
+      "scenario": "The parent session has not pinned a model or reasoning effort, and the platform's automatic selection may choose a different setup for the reviewer.",
+      "expected": [
+        "Do not claim exact inherited parity from default reviewer behavior alone.",
+        "Pin the parent model and reasoning settings before review when the surface allows it.",
+        "If parity still cannot be established, treat the reviewer as supplemental and report an incomplete outcome."
       ]
     },
     {

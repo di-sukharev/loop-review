@@ -1,33 +1,34 @@
 ---
 name: loop-code-review
-description: Iterative code review workflow for task-scoped active git changes using independent reviewer agents that are at least as capable as the orchestrating model. Use when the user invokes `/loop-code-review`, asks for a looped sub-agent code review, or asks the coding agent to keep reviewing and fixing current-task changes until validation passes and an eligible independent reviewer either rates the result at least 9.5 out of 10 or reports no actionable comments.
+description: Iterative code review workflow for task-scoped active git changes using fresh independent reviewer agents that inherit or otherwise match the orchestrator's model and reasoning capability without receiving its conversation history. Use when the user invokes `/loop-code-review`, asks for a looped sub-agent code review, or asks the coding agent to keep reviewing and fixing current-task changes until validation passes and an eligible independent reviewer either rates the result at least 9.5 out of 10 or reports no actionable comments.
 ---
 
 # Loop Code Review
 
 ## Overview
 
-Run an iterative review-and-fix loop over the current task's active git changes, without reviewing unrelated worktree changes from other tasks. Use independent read-only reviewer agents whose code-reasoning capability is not weaker than the orchestrator's, address actionable findings, validate the result, and continue until the acceptance criteria are met.
+Run an iterative review-and-fix loop over the current task's active git changes, without reviewing unrelated worktree changes from other tasks. Use fresh independent read-only reviewer agents that inherit or otherwise match the orchestrator's model and reasoning capability while starting without its conversation history, address actionable findings, validate the result, and continue until the acceptance criteria are met.
 
 ## Reviewer Eligibility and Isolation
 
-### Capability parity
+### Model and reasoning parity
 
 An independent review is useful because it provides a fresh reasoning pass, not because it delegates judgment to a weaker model.
 
-- Use a reviewer with code-reasoning capability at least equal to the orchestrating model. Prefer the same model/version with equal or higher reasoning effort, or a demonstrably stronger reviewer model.
-- When the platform does not expose model selection but guarantees the same agent capability, treat the reviewer as equal-capability.
+- Use the platform's native inheritance mechanism so the reviewer uses the same model/version and reasoning or effort settings as the orchestrator. Do not set reviewer-specific model or reasoning overrides, even when another option appears stronger.
+- Exact parity is established when the parent session has explicitly selected those settings and the reviewer inherits them. If the parent is still using automatic model selection, pin the parent settings before review when the platform allows it.
+- When the platform does not expose model details or selection but explicitly guarantees that children inherit or match the parent agent's capability, treat the reviewer as equal-capability.
 - When parity cannot be established, use the strongest available reviewer for supplemental findings and disclose that parity is unverified. Treat that reviewer as ineligible for acceptance; unless another eligible reviewer is available, validate the work and report an incomplete outcome.
 - A known weaker reviewer may provide supplemental findings, but its score or no-findings result is not an acceptance signal. If no eligible reviewer is available, validate the work, report the limitation, and stop without claiming that the loop passed.
 
 ### Context isolation
 
-Independent review means the reviewer may share the same filesystem and repository state, but must not inherit the parent thread's conversation history, reasoning, assumptions, or prior review discussion.
+Independent review means the reviewer may share the same filesystem, repository state, and applicable project instructions, but must not inherit the parent thread's conversation history, reasoning, assumptions, tool results, or prior review discussion.
 
-- Do not fork or forward the current context to the reviewer. Provide the reviewer with a clean context and only the task it is reviewing.
-- Pass a self-contained reviewer prompt instead of parent-thread context.
+- Start each scoring reviewer as a fresh agent in an isolated conversation context. Use the platform's native fresh-agent mechanism rather than any mode that carries over parent conversation history.
+- Pass a self-contained reviewer prompt instead of parent-thread context. Include only the repository location, task-owned review scope, validation expectations, and other evidence the reviewer needs to rediscover the facts independently.
 - Require the reviewer to inspect `git status`, diffs, files, and validation output itself before scoring.
-- Treat each scoring pass as coming from a fresh reviewer with no parent context. Follow-up clarification from the same reviewer does not become a new scoring pass.
+- Treat each scoring pass as coming from a fresh reviewer with no parent conversation history. Follow-up clarification from the same reviewer does not become a new scoring pass.
 
 ## Review Scope
 
@@ -54,8 +55,8 @@ Review only the changes that belong to the current user task, even when the git 
    - Record the commands and results so the reviewer can verify the evidence or rerun the relevant checks independently.
 
 3. Start one eligible independent reviewer agent.
-   - Select a reviewer that satisfies capability parity and use the highest practical reasoning/effort setting. Include the model choice or parity rationale in the main process record.
-   - Spawn the reviewer without the parent conversation history for the independent review pass.
+   - Select a reviewer that inherits or otherwise matches the orchestrator's model and reasoning settings. Do not raise, lower, or substitute the reviewer's model or effort. Include the inherited settings or platform parity guarantee in the main process record.
+   - Start a new reviewer instance with a fresh isolated conversation context for the independent review pass. Do not resume or reuse an earlier reviewer conversation for a scoring pass.
    - Give the reviewer only a self-contained task prompt with the repository path, task-owned review scope, and validation expectations. Do not include parent-thread analysis, implementation rationale, suspected issues, proposed fixes, previous reviewer output, or summaries of the main process's reasoning.
    - Ask the reviewer to stay read-only, inspect the scoped active changes independently from the repository state and tool output, prioritize bugs and regressions introduced by those scoped changes, and return findings with file and line references.
    - Require the reviewer to include a final numeric score from 1 to 10 for the current state using the scoring anchors below.
@@ -75,7 +76,7 @@ Review only the changes that belong to the current user task, even when the git 
    - Do not count a 9.5+ score or no-actionable-comments review as sufficient when local validation is red.
 
 6. Repeat the loop.
-   - Spawn a fresh independent reviewer after meaningful fixes, after an actionable finding is rejected with evidence, or after a malformed review. Once a reviewer reports an actionable finding, do not reuse that reviewer's score for acceptance even if the finding is later resolved without a code change. Each scoring pass must use a fresh reviewer without parent context or prior review discussion.
+   - Spawn a fresh independent reviewer after meaningful fixes, after an actionable finding is rejected with evidence, or after a malformed review. Once a reviewer reports an actionable finding, do not reuse that reviewer's score for acceptance even if the finding is later resolved without a code change. Each scoring pass must use a fresh reviewer without parent conversation history or prior review discussion.
    - Accept the loop only when validation for the changed surface passes, the latest eligible reviewer has no unresolved actionable findings, and that reviewer either scores the work at least 9.5/10 or explicitly reports no actionable comments/findings.
    - Stop instead of looping for marginal polish when the remaining ideas are non-actionable preferences.
    - Unless the user requests a different limit or explicitly requires persistence until acceptance, use at most five scoring passes and treat two consecutive passes that produce no code changes and only repeat rejected, stale, or preference-level comments as stagnation.
@@ -107,7 +108,7 @@ Review scope:
 Reviewer eligibility:
 - Orchestrator capability: <model/version and reasoning effort, when exposed>
 - Reviewer capability: <model/version and reasoning effort, when exposed>
-- Parity rationale: <why the reviewer is at least equally capable>
+- Parity rationale: <inherited parent settings or platform guarantee that the reviewer matches the parent>
 
 Prioritize correctness bugs, behavioral regressions, security/privacy issues, data integrity problems, missing high-value tests, and maintainability risks introduced by the scoped changes. You may read neighboring code for context, but do not report findings for unrelated active changes or pre-existing issues unless the scoped changes make them worse. Do not ask for speculative refactors, optional hardening, or subjective polish when the implementation is objectively solid. If tests were added or changed, verify whether they can be trusted and give them a separate quality score from 1 to 10.
 
@@ -119,7 +120,7 @@ Return findings first, ordered by severity, with concrete file/line references a
 When the loop finishes, report:
 
 - what changed and why;
-- the eligible reviewer model or capability-parity rationale;
+- the inherited reviewer model/reasoning settings or platform parity rationale;
 - the reviewer acceptance signal: score at least 9.5/10, no actionable comments/findings, or both;
 - the number of scoring passes used and whether the loop passed, stopped incomplete, or was interrupted;
 - validation commands and results;
