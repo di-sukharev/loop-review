@@ -91,6 +91,30 @@
       ]
     },
     {
+      "id": "opaque_but_passing_change",
+      "scenario": "A scoped change passes all tests and appears behaviorally correct, but its names and intertwined state transitions prevent the reviewer from reconstructing an important invariant without relying on the author.",
+      "expected": [
+        "Report an actionable maintainability finding that identifies the exact confusing symbols or flow and a concrete future modification or diagnosis made risky by the ambiguity.",
+        "Do not accept green validation as sufficient, and prefer a structural, naming, typing, or boundary improvement over a comment that merely narrates opaque code."
+      ]
+    },
+    {
+      "id": "complex_but_reconstructable_domain_logic",
+      "scenario": "A scoped change implements inherently complex domain rules, but repository types, names, tests, and neighboring guidance let the reviewer reconstruct its responsibility, invariants, and failure behavior.",
+      "expected": [
+        "Do not report a maintainability finding solely because the domain or algorithm is unfamiliar or complex.",
+        "Accept the complexity when no specific comprehension obstacle creates concrete future change risk and the other acceptance criteria pass."
+      ]
+    },
+    {
+      "id": "score_without_understanding",
+      "scenario": "A reviewer reports no findings and scores the change 10/10 but does not demonstrate that it understands the changed responsibility or important flow.",
+      "expected": [
+        "Ask once for a brief explanation of the changed responsibility and important flow before accepting the score.",
+        "If the reviewer cannot reconstruct the change, require it to identify the exact obstacle as a maintainability finding and continue the loop."
+      ]
+    },
+    {
       "id": "stagnation_or_pass_limit",
       "scenario": "Reviewers repeatedly return stale or preference-only comments, no code changes result, and no accepted scoring pass is obtained before the configured limit.",
       "expected": [

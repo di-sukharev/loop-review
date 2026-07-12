@@ -1,7 +1,7 @@
 {
   "name": "loop-review",
   "version": "0.1.0",
-  "description": "Iterative independent review-and-fix loop for task-scoped git changes.",
+  "description": "Iterative independent review-and-fix loop for maintainable, task-scoped git changes.",
   "author": {
     "name": "Dima Sukharev",
     "url": "https://github.com/di-sukharev"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Loop Review",
     "shortDescription": "Iterative independent code review loop",
-    "longDescription": "Run a scoped review-and-fix loop over active git changes with fresh independent reviewer agents until validation passes and there are no actionable review findings.",
+    "longDescription": "Run a scoped review-and-fix loop that tests whether fresh independent reviewers can understand and safely inherit active git changes while finding concrete correctness and maintenance risks.",
     "developerName": "Dima Sukharev",
     "category": "Productivity",
     "capabilities": [

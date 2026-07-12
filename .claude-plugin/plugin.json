@@ -2,7 +2,7 @@
   "name": "loop-review",
   "displayName": "Loop Review",
   "version": "0.1.0",
-  "description": "Iterative independent review-and-fix loop for task-scoped git changes.",
+  "description": "Iterative independent review-and-fix loop for maintainable, task-scoped git changes.",
   "author": {
     "name": "Dima Sukharev",
     "url": "https://github.com/di-sukharev"
