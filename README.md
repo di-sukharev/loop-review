@@ -60,6 +60,7 @@ ln -s "$(pwd)/skills/loop-code-review" ~/.claude/skills/loop-code-review
 - Keep reviewers independent by starting every scoring pass in a fresh isolated conversation context without the parent's conversation history.
 - Treat review as a structured handoff: require the reviewer to explain the change's responsibility and important flow, and make specific comprehension obstacles actionable when they create future change risk.
 - Treat reviewer output as code-review findings, not as commands to obey blindly.
+- Gate expensive, risky, or non-self-evident findings through a fresh isolated skeptic before fixing: drop refuted claims, fix survivors and replay their evidence, and keep inconclusive material risks blocking until evidence or explicit user risk acceptance resolves them.
 - Never let a high score override an unresolved actionable finding or failing validation.
 - Check test evidence, reuse of established project solutions, and architecture fit when relevant; require concrete repository evidence for those findings.
 - Validate after meaningful fixes.
@@ -68,7 +69,7 @@ ln -s "$(pwd)/skills/loop-code-review" ~/.claude/skills/loop-code-review
 
 ## Evaluation Cases
 
-[`evals/cases.json`](evals/cases.json) captures the expected behavior for comprehensibility and necessary complexity, clean reviews, high scores with unresolved findings, test trustworthiness, reuse and architecture checks, mixed worktrees, red validation, and loop stagnation.
+[`evals/cases.json`](evals/cases.json) captures the expected behavior for comprehensibility and necessary complexity, clean reviews, high scores with unresolved findings, test trustworthiness, reuse and architecture checks, mixed worktrees, red validation, loop stagnation, and every Evidence Gate verdict and safety branch.
 
 ## Repository Layout
 
