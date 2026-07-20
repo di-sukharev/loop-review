@@ -129,6 +129,62 @@
         "Do not stop solely because of the default pass limit or stagnation threshold.",
         "Continue the review-and-fix loop without lowering the acceptance bar while safe, in scope, and able to make meaningful progress."
       ]
+    },
+    {
+      "id": "gate_drops_false_finding",
+      "scenario": "A reviewer reports a correctness finding whose fix would change behavior, but a blind skeptic reproduces the scenario and observes the code already behaves correctly, refuting the claim.",
+      "expected": [
+        "Do not spend fix effort on the dropped finding.",
+        "Reject it with the skeptic's counter-evidence and do not let the dropped finding block acceptance."
+      ]
+    },
+    {
+      "id": "gate_isolates_skeptic_context",
+      "scenario": "A reviewer reports a gated finding after discussing its reasoning with the parent agent.",
+      "expected": [
+        "Spawn the skeptic with a fresh-agent mode that does not inherit parent conversation history.",
+        "Give it a neutral atomic question and anchors, omitting the reviewer's arguments and parent reasoning."
+      ]
+    },
+    {
+      "id": "gate_survives_true_finding",
+      "scenario": "A reviewer reports a risky correctness finding, and an isolated skeptic reproduces the faulty behavior.",
+      "expected": [
+        "Return survives and treat the finding as actionable.",
+        "Fix it, then replay the same behavioral evidence before requesting another scoring review."
+      ]
+    },
+    {
+      "id": "gate_failed_reproduction_is_inconclusive",
+      "scenario": "A skeptic cannot reproduce a factual security finding because the required environment is unavailable, and no authoritative contract decides the claim.",
+      "expected": [
+        "Return inconclusive rather than dropped because failure to reproduce is not counter-evidence.",
+        "Keep the finding unresolved and block acceptance until evidence decides it or the user explicitly accepts the risk."
+      ]
+    },
+    {
+      "id": "gate_defers_evaluative_human_decision",
+      "scenario": "A reviewer prefers one of two valid product behaviors, but no authoritative contract selects either choice and neither creates a concrete correctness or safety risk.",
+      "expected": [
+        "Return human decision and do not drive a fix.",
+        "Treat it as non-actionable and surface the optional choice in the final report without blocking acceptance."
+      ]
+    },
+    {
+      "id": "gate_replays_survivor_evidence",
+      "scenario": "A skeptic establishes a finding with a focused reproduction, the agent changes the code, and broad validation passes.",
+      "expected": [
+        "Replay the skeptic's focused reproduction after the fix instead of relying on broad validation or the next reviewer to rediscover the defect.",
+        "Keep the finding unresolved if the replay still demonstrates it or cannot be completed."
+      ]
+    },
+    {
+      "id": "gate_skips_trivial_finding",
+      "scenario": "A reviewer reports a self-evidently true, cheap-to-fix finding such as a misspelled identifier or an obvious dead-code removal.",
+      "expected": [
+        "Fix the finding directly without spawning a skeptic.",
+        "Reserve the Evidence Gate for findings whose fix is expensive or risky or whose truth is not self-evident."
+      ]
     }
   ]
 }

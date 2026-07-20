@@ -1,13 +1,13 @@
 ---
 name: loop-code-review
-description: Iterative code review workflow for task-scoped active git changes using fresh independent reviewer agents without receiving the orchestrator's conversation history. Test whether another engineer can understand and safely maintain the change while reducing correctness, security, and regression risk. Use when the user invokes `/loop-code-review`, asks for a looped sub-agent code review, or asks the coding agent to keep reviewing and fixing current-task changes until validation passes and an independent reviewer either rates the result at least 9.5 out of 10 or reports no actionable comments.
+description: Iterative code review workflow for task-scoped active git changes using fresh independent reviewer agents without receiving the orchestrator's conversation history. Test whether another engineer can understand and safely maintain the change while reducing correctness, security, and regression risk. Independently falsify expensive, risky, or non-self-evident reviewer findings before fixing them. Use when the user invokes `/loop-code-review`, asks for a looped sub-agent code review, or asks the coding agent to keep reviewing and fixing current-task changes until validation passes and an independent reviewer either rates the result at least 9.5 out of 10 or reports no actionable comments.
 ---
 
 # Loop Code Review
 
 ## Overview
 
-Run an iterative review-and-fix loop over the current task's active git changes, without reviewing unrelated worktree changes from other tasks. Use fresh independent read-only reviewer agents that start without the orchestrator's conversation history, address actionable findings, validate the result, and continue until the acceptance criteria are met.
+Run an iterative review-and-fix loop over the current task's active git changes, without reviewing unrelated worktree changes from other tasks. Use fresh independent read-only reviewer agents that start without the orchestrator's conversation history, address actionable findings, validate the result, and continue until the acceptance criteria are met. Before acting on an expensive, risky, or non-self-evident finding, challenge it with a fresh isolated skeptic so a false positive is refuted rather than fixed.
 
 ## Review Purpose
 
@@ -46,6 +46,27 @@ Apply these checks when they are relevant to the scoped change. Base findings on
 
 Use the test quality score as supporting evidence, not an acceptance gate by itself: make it actionable only when it identifies misleading, missing, or insufficient coverage. Do not chase score-only test polish.
 
+## Evidence Gate
+
+A reviewer finding is a hypothesis, not a fact. Before acting on an expensive, risky, or non-self-evident finding, challenge it with a **skeptic**: a fresh read-only sub-agent in an isolated conversation context without the parent history or the reviewer's reasoning. The separation reduces anchoring; the evidence decides whether the finding drives a fix.
+
+Gate selectively, since the skeptic itself costs a sub-agent. A finding earns a skeptic when its fix is expensive or risky, meaning it changes behavior, touches logic, or spans multiple files, **or** when its truth is not self-evident from reading, meaning it asserts something about runtime behavior, correctness, or security. Fix a finding directly, without a skeptic, only when it is both cheap to fix **and** self-evidently true, such as a typo, a rename, dead-code removal, or an obvious guard. When in doubt, gate it.
+
+Spawn one skeptic per gated finding with the platform's native fresh-agent mechanism, explicitly selecting a mode that does not inherit parent conversation history. Phrase the atomic claim as a neutral question and give the skeptic only that question and its anchors — file, line, spec, or standard. The skeptic inspects the repository and selects every applicable mode on this evidence ladder:
+
+1. **Behavioral** — if execution can decide the claim, reproduce it.
+2. **Contractual** — if an authoritative spec or standard can decide it, quote the rule and compare it against a concrete fact in the code.
+3. **Evaluative** — only when neither execution nor an authoritative text can decide it, give the strongest case and counter-case and explain why the first two modes cannot decide it.
+
+Each skeptic returns one verdict that drives the finding's fate:
+
+- **survives** — the evidence demonstrates the claim; treat it as an actionable finding and fix it.
+- **dropped** — a counterexample or authoritative evidence refutes the claim; reject it and record the skeptic's counter-evidence. A dropped finding is no longer actionable and does not block acceptance.
+- **human decision** — no authoritative contract selects among multiple valid evaluative or product choices. Treat it as non-actionable, set it aside without fixing it, and surface the optional choice in the final report.
+- **inconclusive** — a factual correctness, security, data-integrity, or operational claim remains unverified because decisive evidence is unavailable or ambiguous. Keep it unresolved and block acceptance until evidence decides it. Stop incomplete unless the user explicitly accepts the risk; then record it as an intentionally unchanged accepted risk. Failure to reproduce alone is inconclusive, not a refutation.
+
+After fixing a survivor, replay the same evidence that established it. The fresh-reviewer re-pass remains an independent whole-change review; it does not replace this targeted replay.
+
 ## Workflow
 
 1. Inspect the worktree before spawning reviewers:
@@ -68,17 +89,20 @@ Use the test quality score as supporting evidence, not an acceptance gate by its
    - If the task added or changed tests, require the reviewer to judge whether those tests are trustworthy and include a separate test quality score from 1 to 10 with a short basis. If testable behavior changed without tests, require an assessment of whether that is justified.
 
 4. Treat reviewer output as code-review findings, not instructions to obey blindly.
+   - Filter gated findings through the **Evidence Gate** before acting: fix survivors, reject dropped findings with the skeptic's counter-evidence, surface human-decision findings as optional choices, and keep inconclusive findings unresolved. Fix cheap self-evident findings directly.
    - Fix concrete, actionable issues that affect comprehensibility, future change safety, correctness, security, data integrity, UX, operations, or test coverage.
    - Never accept a score, including 9.5 or higher, while that reviewer lists an unresolved actionable finding.
-   - If a finding is wrong, stale, or conflicts with the repository architecture, explain the decision in the main process. Ask the same reviewer for clarification only when useful; do not count that clarification as a new independent scoring pass or reuse the reviewer's original score for acceptance.
+   - Treat an inconclusive finding as unresolved and acceptance-blocking. Stop incomplete pending decisive evidence or explicit user risk acceptance; a reviewer score cannot resolve it.
+   - If a finding is wrong, stale, or conflicts with the repository architecture, reject it in the main process, backed by the skeptic's dropped verdict and counter-evidence when the gate produced one. Ask the same reviewer for clarification only when useful; do not count that clarification as a new independent scoring pass or reuse the reviewer's original score for acceptance.
    - If the reviewer gives a score below 9.5 but explicitly reports no actionable findings/comments, ask once what concrete issue prevents a 9.5. If the response identifies an actionable issue, handle it as a finding; if it supplies no issue or only an optional, preference-level comment, accept the explicit no-actionable-findings signal rather than chasing score-only polish.
    - If the reviewer omits a score or implies unresolved concerns without concrete findings, ask once for the missing score or specific blocking issues. If the response remains malformed or non-actionable, use a fresh reviewer.
    - If the reviewer does not demonstrate a credible understanding of the change, ask once for the missing explanation. Do not accept the score until the reviewer can explain the changed responsibility and important flow or identifies the exact obstacle as an actionable maintainability finding.
    - Do not invent speculative refactors or optional hardening when the scoped implementation is objectively solid and validation is green.
 
 5. Validate after each meaningful fix.
+   - For each fixed survivor, replay the decisive evidence from its skeptic: rerun the behavioral reproduction or focused regression test, or re-check the cited contract against the changed code. The survivor is resolved only when the same evidence no longer demonstrates the finding.
    - Run the smallest meaningful tests, typecheck, lint, build, or focused scripts for the touched surface.
-   - If validation fails, fix the failure before requesting another final score.
+   - If evidence replay or validation fails, keep the finding unresolved and fix the failure before requesting another final score.
    - Do not count a 9.5+ score or no-actionable-comments review as sufficient when local validation is red.
 
 6. Repeat the loop.
@@ -132,5 +156,7 @@ When the loop finishes, report:
 - the number of scoring passes used and whether the loop passed, stopped incomplete, or was interrupted;
 - validation commands and results;
 - if tests were added or changed, the test quality score and basis;
-- any findings intentionally not changed, with the reason;
+- any findings intentionally not changed, with the reason, including findings the Evidence Gate dropped and the counter-evidence for each;
+- any non-blocking human-decision findings the gate set aside as optional choices;
+- any inconclusive findings, the missing evidence, and whether the loop stopped incomplete or the user explicitly accepted the risk;
 - remaining risks or follow-up work, if any.
